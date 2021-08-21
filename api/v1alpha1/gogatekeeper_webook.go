@@ -52,12 +52,14 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	gatekeeperInjectorLog.Info("incoming pod", "annotations", pod.GetAnnotations())
+	gatekeeperContainer := corev1.Container{
+		Image: "quay.io/gogatekeeper/gatekeeper:1.3.4",
+		Name:  "gogatekeeper",
+	}
 
-	// if pod.Annotations == nil {
-	// 	pod.Annotations = map[string]string{}
-	// }
-	// pod.Annotations["example-mutating-admission-webhook"] = "foo"
+	pod.Spec.Containers = append(pod.Spec.Containers, gatekeeperContainer)
+
+	gatekeeperInjectorLog.Info("incoming pod", "annotations", pod.GetAnnotations())
 
 	marshaledPod, err := json.Marshal(pod)
 	if err != nil {
