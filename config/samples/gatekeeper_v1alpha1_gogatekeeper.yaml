@@ -1,0 +1,7 @@
+apiVersion: gatekeeper.adstein/v1alpha1
+kind: Gogatekeeper
+metadata:
+  name: gogatekeeper-sample
+spec:
+  # Add fields here
+  foo: bar

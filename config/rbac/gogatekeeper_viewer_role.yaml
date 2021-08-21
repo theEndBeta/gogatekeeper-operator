@@ -1,0 +1,20 @@
+# permissions for end users to view gogatekeepers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gogatekeeper-viewer-role
+rules:
+- apiGroups:
+  - gatekeeper.adstein
+  resources:
+  - gogatekeepers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gatekeeper.adstein
+  resources:
+  - gogatekeepers/status
+  verbs:
+  - get

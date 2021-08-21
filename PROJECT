@@ -1,0 +1,16 @@
+domain: adstein
+layout:
+- go.kubebuilder.io/v3
+projectName: gogatekeeper-operator
+repo: github.com/theEndBeta/gogatekeeper-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: adstein
+  group: gatekeeper
+  kind: Gogatekeeper
+  path: github.com/theEndBeta/gogatekeeper-operator/api/v1alpha1
+  version: v1alpha1
+version: "3"
