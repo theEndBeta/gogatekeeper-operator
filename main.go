@@ -30,6 +30,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	gatekeeperv1alpha1 "github.com/theEndBeta/gogatekeeper-operator/api/v1alpha1"
 	"github.com/theEndBeta/gogatekeeper-operator/controllers"
@@ -85,6 +86,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Gogatekeeper")
 		os.Exit(1)
 	}
+
+	setupLog.Info("setting up webhook server")
+	hookServer := mgr.GetWebhookServer()
+	gkInjector := gatekeeperv1alpha1.NewGatekeeperInjector(mgr.GetClient())
+	hookServer.Register("/mutate-v1-pod", &webhook.Admission{Handler: gkInjector})
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
