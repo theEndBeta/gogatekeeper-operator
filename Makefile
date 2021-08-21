@@ -85,6 +85,12 @@ docker-build: test ## Build docker image with the manager.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
+podman-build: test ## Build podman image with the manager.
+	podman build -t ${IMG} .
+
+podman-push: ## Push podman image with the manager.
+	podman push ${IMG}
+
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
