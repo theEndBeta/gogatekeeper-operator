@@ -13,7 +13,7 @@ VERSION ?= 0.0.2
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # adstein/gogatekeeper-operator-bundle:$VERSION and adstein/gogatekeeper-operator-catalog:$VERSION.
 #
-IMAGE_TAG_BASE ?= docker.io/adstein/gogatekeeper-operator
+IMAGE_TAG_BASE ?= adstein/gogatekeeper-operator
 # Image URL to use all building/pushing image targets
 IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 
