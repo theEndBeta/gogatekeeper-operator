@@ -3,4 +3,5 @@ kind: Gogatekeeper
 metadata:
   name: gatekeeper-test
 spec:
+  # EDIT THIS
   oidcurl: http://10.176.128.1:5556/dex

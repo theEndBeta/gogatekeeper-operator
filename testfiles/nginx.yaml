@@ -3,22 +3,16 @@ kind: Deployment
 metadata:
   name: nginx
   labels:
-    app: nginx-gk-test
+    app: nginx-no-gk
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nginx-gk-test
+      app: nginx-no-gk
   template:
     metadata:
       labels:
-        app: nginx-gk-test
-      annotations:
-        gatekeeper.gogatekeeper: gatekeeper-test
-        gatekeeper.gogatekeeper/client-id: "example-app"
-        gatekeeper.gogatekeeper/client-secret: ZXhhbXBsZS1hcHAtc2VjcmV0
-        gatekeeper.gogatekeeper/encryption-key: VtMkufTWXWA5x83C
-        gatekeeper.gogatekeeper/redirection-url: "http://10.176.128.136:30001"
+        app: nginx-no-gk
     spec:
       containers:
       - name: nginx
@@ -29,13 +23,13 @@ kind: Service
 metadata:
   name: nginx
   labels:
-    app: nginx-gk-test
+    app: nginx-no-gk
 spec:
   type: NodePort
   ports:
-  - port: 3000
-    nodePort: 30001
+  - port: 80
+    nodePort: 30002
     protocol: TCP
     name: http
   selector:
-    app: nginx-gk-test
+    app: nginx-no-gk
