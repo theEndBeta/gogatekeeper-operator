@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app: nginx-gk-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-gk-test
+  template:
+    metadata:
+      labels:
+        app: nginx-gk-test
+      annotations:
+        gatekeeper.gogatekeeper: gatekeeper-test
+        gatekeeper.gogatekeeper/client-id: "example-app"
+        gatekeeper.gogatekeeper/client-secret: ZXhhbXBsZS1hcHAtc2VjcmV0
+        gatekeeper.gogatekeeper/encryption-key: VtMkufTWXWA5x83C
+        gatekeeper.gogatekeeper/redirection-url: "http://10.176.128.136:30001"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:stable
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx-gk-test
+spec:
+  type: NodePort
+  ports:
+  - port: 3000
+    nodePort: 30001
+    protocol: TCP
+    name: http
+  selector:
+    app: nginx-gk-test

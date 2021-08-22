@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,13 +45,12 @@ type GogatekeeperReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
-
 var gatekeeperDefaultConfig = map[string]string{
-	"upstream-url": "http://127.0.0.1:80",
-	"listen": ":3000",
-	"listen-admin": ":4000",
+	"upstream-url":          "http://127.0.0.1:80",
+	"listen":                ":3000",
+	"listen-admin":          ":4000",
 	"enable-refresh-tokens": "true",
-	"redirection-url": "http://127.0.0.1:3000",
+	"secure-cookie":         "false",
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -97,12 +96,10 @@ func (r *GogatekeeperReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		log.Error(err, "Failed to get ConfigMap")
 		return ctrl.Result{}, err
-	} 
+	}
 
 	return ctrl.Result{}, nil
 }
-
-
 
 func (r *GogatekeeperReconciler) newGatekeeperConfigMap(gk *gatekeeperv1alpha1.Gogatekeeper) *corev1.ConfigMap {
 
@@ -120,7 +117,7 @@ func (r *GogatekeeperReconciler) newGatekeeperConfigMap(gk *gatekeeperv1alpha1.G
 
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: gk.Name,
+			Name:      gk.Name,
 			Namespace: gk.Namespace,
 		},
 		Data: map[string]string{

@@ -54,7 +54,7 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 
 	annotations := pod.GetAnnotations()
 	if _, ok := annotations["gatekeeper.gogatekeeper"]; !ok {
-		return admission.Response{}
+		return admission.Allowed("No injection requested")
 	}
 
 	configMapVolume := &corev1.ConfigMapVolumeSource{
@@ -75,13 +75,27 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 		Name:  "gogatekeeper",
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name: "gatekeeper-config",
+				Name:      "gatekeeper-config",
 				MountPath: "/etc/gatekeeperConfig/",
+			},
+		},
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          "gatekeeper",
+				ContainerPort: 3000,
 			},
 		},
 		Args: []string{
 			"--config",
 			"/etc/gatekeeperConfig/gatekeeper.yaml",
+			"--client-id",
+			annotations["gatekeeper.gogatekeeper/client-id"],
+			"--client-secret",
+			annotations["gatekeeper.gogatekeeper/client-secret"],
+			"--encryption-key",
+			annotations["gatekeeper.gogatekeeper/encryption-key"],
+			"--redirection-url",
+			annotations["gatekeeper.gogatekeeper/redirection-url"],
 		},
 	}
 
