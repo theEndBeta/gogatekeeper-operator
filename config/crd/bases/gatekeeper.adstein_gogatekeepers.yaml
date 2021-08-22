@@ -37,7 +37,7 @@ spec:
             description: GogatekeeperSpec defines the desired state of Gogatekeeper
             properties:
               oidcurl:
-                description: OIDC connection URL
+                description: OIDC discovery URL
                 type: string
             required:
             - oidcurl

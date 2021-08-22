@@ -28,7 +28,7 @@ type GogatekeeperSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// OIDC connection URL
+	// OIDC discovery URL
 	OIDCURL string `json:"oidcurl"`
 }
 

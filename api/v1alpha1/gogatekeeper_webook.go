@@ -52,12 +52,41 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
+	annotations := pod.GetAnnotations()
+	if _, ok := annotations["gatekeeper.gogatekeeper"]; !ok {
+		return admission.Response{}
+	}
+
+	configMapVolume := &corev1.ConfigMapVolumeSource{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: annotations["gatekeeper.gogatekeeper"],
+		},
+	}
+
+	gatekeeperConfigVolume := corev1.Volume{
+		Name: "gatekeeper-config",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: configMapVolume,
+		},
+	}
+
 	gatekeeperContainer := corev1.Container{
 		Image: "quay.io/gogatekeeper/gatekeeper:1.3.4",
 		Name:  "gogatekeeper",
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name: "gatekeeper-config",
+				MountPath: "/etc/gatekeeperConfig/",
+			},
+		},
+		Args: []string{
+			"--config",
+			"/etc/gatekeeperConfig/gatekeeper.yaml",
+		},
 	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, gatekeeperContainer)
+	pod.Spec.Volumes = append(pod.Spec.Volumes, gatekeeperConfigVolume)
 
 	gatekeeperInjectorLog.Info("incoming pod", "annotations", pod.GetAnnotations())
 

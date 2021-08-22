@@ -1,0 +1,6 @@
+apiVersion: gatekeeper.adstein/v1alpha1
+kind: Gogatekeeper
+metadata:
+  name: gatekeeper-test
+spec:
+  oidcurl: http://10.176.128.1:5556
