@@ -5,7 +5,7 @@ metadata:
   name: gogatekeeper-viewer-role
 rules:
 - apiGroups:
-  - gatekeeper.adstein
+  - gatekeeper.theendbeta.me
   resources:
   - gogatekeepers
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - gatekeeper.adstein
+  - gatekeeper.theendbeta.me
   resources:
   - gogatekeepers/status
   verbs:

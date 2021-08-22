@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: gogatekeepers.gatekeeper.adstein
+  name: gogatekeepers.gatekeeper.theendbeta.me
 spec:
-  group: gatekeeper.adstein
+  group: gatekeeper.theendbeta.me
   names:
     kind: Gogatekeeper
     listKind: GogatekeeperList

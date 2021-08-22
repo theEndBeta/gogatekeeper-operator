@@ -5,7 +5,7 @@ metadata:
   name: gogatekeeper-editor-role
 rules:
 - apiGroups:
-  - gatekeeper.adstein
+  - gatekeeper.theendbeta.me
   resources:
   - gogatekeepers
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - gatekeeper.adstein
+  - gatekeeper.theendbeta.me
   resources:
   - gogatekeepers/status
   verbs:

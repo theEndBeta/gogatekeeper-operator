@@ -1,4 +1,4 @@
-apiVersion: gatekeeper.adstein/v1alpha1
+apiVersion: gatekeeper.theendbeta.me/v1alpha1
 kind: Gogatekeeper
 metadata:
   name: gogatekeeper-sample

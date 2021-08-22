@@ -38,9 +38,9 @@ type GogatekeeperReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=gatekeeper.adstein,resources=gogatekeepers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=gatekeeper.adstein,resources=gogatekeepers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=gatekeeper.adstein,resources=gogatekeepers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=gatekeeper.theendbeta.me,resources=gogatekeepers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=gatekeeper.theendbeta.me,resources=gogatekeepers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=gatekeeper.theendbeta.me,resources=gogatekeepers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
