@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	corev1 "k8s.io/api/core/v1"
@@ -52,22 +53,47 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	annotations := pod.GetAnnotations()
-	if _, ok := annotations["gatekeeper.gogatekeeper"]; !ok {
+	annotationPrefix := "gatekeeper.gogatekeeper"
+	requiredAnnotations := []string{
+		"client-id",
+		"client-secret",
+		"encryption-key",
+		"redirection-url",
+	}
+
+	podAnnotations := pod.GetAnnotations()
+	if _, ok := podAnnotations["gatekeeper.gogatekeeper"]; !ok {
 		return admission.Allowed("No injection requested")
 	}
 
+	gatekeeperInjectorLog.Info("Injecting gatekeeper container", "Pod", pod.Name, "ConfigMap", podAnnotations["gatekeeper.gogatekeeper"])
+
+	// Mount ConfigFile (CRD generated) as config for gatekeeper instance
 	configMapVolume := &corev1.ConfigMapVolumeSource{
 		LocalObjectReference: corev1.LocalObjectReference{
-			Name: annotations["gatekeeper.gogatekeeper"],
+			Name: podAnnotations["gatekeeper.gogatekeeper"],
 		},
 	}
-
 	gatekeeperConfigVolume := corev1.Volume{
 		Name: "gatekeeper-config",
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: configMapVolume,
 		},
+	}
+
+	// Generate list of dynamic arguments for gatekeeper container
+	gkContainerArgs := []string{
+		"--config",
+		"/etc/gatekeeperConfig/gatekeeper.yaml",
+	}
+
+	// Let the user omit one for now...
+	var gkConfigAnnotation string
+	for _, annot := range requiredAnnotations {
+		gkConfigAnnotation = fmt.Sprintf("%s/%s", annotationPrefix, annot)
+		if val, ok := podAnnotations[gkConfigAnnotation]; ok {
+			gkContainerArgs = append(gkContainerArgs, "--"+annot, val)
+		}
 	}
 
 	gatekeeperContainer := corev1.Container{
@@ -85,24 +111,11 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 				ContainerPort: 3000,
 			},
 		},
-		Args: []string{
-			"--config",
-			"/etc/gatekeeperConfig/gatekeeper.yaml",
-			"--client-id",
-			annotations["gatekeeper.gogatekeeper/client-id"],
-			"--client-secret",
-			annotations["gatekeeper.gogatekeeper/client-secret"],
-			"--encryption-key",
-			annotations["gatekeeper.gogatekeeper/encryption-key"],
-			"--redirection-url",
-			annotations["gatekeeper.gogatekeeper/redirection-url"],
-		},
+		Args: gkContainerArgs,
 	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, gatekeeperContainer)
 	pod.Spec.Volumes = append(pod.Spec.Volumes, gatekeeperConfigVolume)
-
-	gatekeeperInjectorLog.Info("incoming pod", "annotations", pod.GetAnnotations())
 
 	marshaledPod, err := json.Marshal(pod)
 	if err != nil {
