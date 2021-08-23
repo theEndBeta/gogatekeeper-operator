@@ -127,4 +127,3 @@ There are three example yaml files available in the `testfiles` directory.
 * Add update monitoring/handling to gatekeeper CRD admission webhook.
 * Add validation webhook to gatekeeper CRD.
 * Automated tests
-* Fix group and kind naming to be... better.
