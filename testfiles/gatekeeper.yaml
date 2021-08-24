@@ -5,3 +5,9 @@ metadata:
 spec:
   # EDIT THIS
   oidcurl: http://10.176.128.1:5556/dex
+  defaultconfig: |-
+    upstream-url:          http://127.0.0.1:80
+    listen:                :3000
+    listen-admin:          :4000
+    enable-refresh-tokens: true
+    secure-cookie:         false

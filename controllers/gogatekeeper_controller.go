@@ -46,14 +46,6 @@ type GogatekeeperReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
-var gatekeeperDefaultConfig = `
-upstream-url:          http://127.0.0.1:80
-listen:                :3000
-listen-admin:          :4000
-enable-refresh-tokens: true
-secure-cookie:         false
-`
-
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -110,13 +102,14 @@ func (r *GogatekeeperReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 func (r *GogatekeeperReconciler) newGatekeeperConfigMap(gk *gatekeeperv1alpha1.Gogatekeeper) (*corev1.ConfigMap, error) {
 
-	log := ctrl.Log.WithName("congigGenerator")
+	log := ctrl.Log.WithName("configGenerator")
 	var mergedConfigNode *yamlv3.Node
 
 	extraConfig := map[string]string{
 		"discovery-url": gk.Spec.OIDCURL,
 	}
 
+	// Encode required configuration as yaml Node
 	extraConfNode := &yamlv3.Node{}
 	err := extraConfNode.Encode(extraConfig)
 
@@ -125,16 +118,19 @@ func (r *GogatekeeperReconciler) newGatekeeperConfigMap(gk *gatekeeperv1alpha1.G
 		return nil, err
 	}
 
+	// Unmarshal user specified default configuration
+	defaultConfig := gk.Spec.DefaultConfig
 	defaultConfigNode := &yamlv3.Node{}
-	err = yamlv3.Unmarshal([]byte(gatekeeperDefaultConfig), defaultConfigNode)
+	err = yamlv3.Unmarshal([]byte(defaultConfig), defaultConfigNode)
 
+	// Try to merge the user's config and the required config, prioritizing the required CRD fields
+	// If we can't unmarshal the user's config, we still have the required configuration to marshal
 	if err != nil {
 		log.Error(err, "Failed to unmarshal default config")
 		mergedConfigNode = extraConfNode
 	} else {
-
 		content := defaultConfigNode.Content[0]
-		content.Content = append(extraConfNode.Content, content.Content...)
+		content.Content = append(content.Content, extraConfNode.Content...)
 		mergedConfigNode = defaultConfigNode
 	}
 

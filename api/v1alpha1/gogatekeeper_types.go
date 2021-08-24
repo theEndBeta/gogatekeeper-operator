@@ -30,6 +30,9 @@ type GogatekeeperSpec struct {
 
 	// OIDC discovery URL
 	OIDCURL string `json:"oidcurl"`
+
+	// yaml configuration
+	DefaultConfig string `json:"defaultconfig"`
 }
 
 // GogatekeeperStatus defines the observed state of Gogatekeeper

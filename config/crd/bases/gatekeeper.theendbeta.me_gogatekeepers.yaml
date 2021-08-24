@@ -36,10 +36,14 @@ spec:
           spec:
             description: GogatekeeperSpec defines the desired state of Gogatekeeper
             properties:
+              defaultconfig:
+                description: yaml configuration
+                type: string
               oidcurl:
                 description: OIDC discovery URL
                 type: string
             required:
+            - defaultconfig
             - oidcurl
             type: object
           status:
