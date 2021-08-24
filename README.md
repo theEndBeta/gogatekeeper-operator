@@ -12,6 +12,89 @@ application specific configurations.
 2) Allow users to define default OIDC gateways and configuration to be used with a gatekeeper instance.
 
 
+## Usage
+
+Option names map exactly (or almost exactly) in a few cases to their gatekeeper equivalents.
+The best way to see all gatekeeper options is to run:
+
+```bash
+podman run gogatekeeper/gatekeeper:1.3.4 --help
+```
+
+### CRD
+
+```yaml
+apiVersion: gatekeeper.theendbeta.me/v1alpha1
+kind: Gogatekeeper
+metadata:
+  name: gatekeeper-test
+spec:
+  # (required) OIDC discovery url for your provider
+  oidcurl: http://127.0.0.1:5556/dex
+  # (optional) default configuration to apply to all instances using this resource
+  defaultconfig: |-
+    upstream-url:          http://127.0.0.1:80
+    listen:                :3000
+    enable-refresh-tokens: true
+    secure-cookie:         false
+```
+
+### Annotations
+
+The required annotations must be on the `Pod` template, not the top-level `Deployment`, as the webhook currently works
+at the `Pod` level.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-gk
+  labels:
+    app: nginx-gk-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-gk-test
+  template:
+    metadata:
+      labels:
+        app: nginx-gk-test
+      annotations:
+        # The name of the gatekeeper.theendbeta.me/v1alpha1 resource to use
+        gatekeeper.gogatekeeper: gatekeeper-test
+        # OIDC client-id for the application (`--client-id` option)
+        gatekeeper.gogatekeeper/client-id: "example-app"
+        # OIDC client-secret for the application (`--client-secret` option)
+        gatekeeper.gogatekeeper/client-secret: ZXhhbXBsZS1hcHAtc2VjcmV0
+        # session state encryption key (`--encryption-key` option)
+        gatekeeper.gogatekeeper/encryption-key: VtMkufTWXWA5x83C
+        # redirect URL for application (post login) (`--redirection-url` option)
+        gatekeeper.gogatekeeper/redirection-url: "http://10.176.128.136:30001"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:stable
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-gk
+  labels:
+    app: nginx-gk-test
+spec:
+  type: NodePort
+  ports:
+  # The port should be the one that `gatekeeper` is listening on, not the upstream service
+  - port: 3000
+    nodePort: 30001
+    protocol: TCP
+    name: http
+  selector:
+    app: nginx-gk-test
+```
+
+
 ## Install
 
 ### cert-manager
