@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,6 +27,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	yamlv3 "gopkg.in/yaml.v3"
 
 	gatekeeperv1alpha1 "github.com/theEndBeta/gogatekeeper-operator/api/v1alpha1"
 )
@@ -45,13 +46,13 @@ type GogatekeeperReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
-var gatekeeperDefaultConfig = map[string]string{
-	"upstream-url":          "http://127.0.0.1:80",
-	"listen":                ":3000",
-	"listen-admin":          ":4000",
-	"enable-refresh-tokens": "true",
-	"secure-cookie":         "false",
-}
+var gatekeeperDefaultConfig = `
+upstream-url:          http://127.0.0.1:80
+listen:                :3000
+listen-admin:          :4000
+enable-refresh-tokens: true
+secure-cookie:         false
+`
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -83,8 +84,14 @@ func (r *GogatekeeperReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if err != nil {
 		// Create new configMap
 		if errors.IsNotFound(err) {
-			config := r.newGatekeeperConfigMap(gatekeeper)
+			config, err := r.newGatekeeperConfigMap(gatekeeper)
+			if err != nil {
+				log.Error(err, "Failed to generate gatekeeper config", "ConfigMap.Name", config.Name, "ConfigMap.Namespace", config.Namespace)
+				return ctrl.Result{}, err
+			}
+
 			log.Info("Creating new gogatekeeper config map", "ConfigMap.Name", config.Name, "ConfigMap.Namespace", config.Namespace)
+
 			err = r.Create(ctx, config)
 
 			if err != nil {
@@ -101,18 +108,41 @@ func (r *GogatekeeperReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-func (r *GogatekeeperReconciler) newGatekeeperConfigMap(gk *gatekeeperv1alpha1.Gogatekeeper) *corev1.ConfigMap {
+func (r *GogatekeeperReconciler) newGatekeeperConfigMap(gk *gatekeeperv1alpha1.Gogatekeeper) (*corev1.ConfigMap, error) {
 
-	tempConfig := map[string]string{
+	log := ctrl.Log.WithName("congigGenerator")
+	var mergedConfigNode *yamlv3.Node
+
+	extraConfig := map[string]string{
 		"discovery-url": gk.Spec.OIDCURL,
 	}
 
-	var config string
-	for k, v := range gatekeeperDefaultConfig {
-		config += fmt.Sprintf("%s: %s\n", k, v)
+	extraConfNode := &yamlv3.Node{}
+	err := extraConfNode.Encode(extraConfig)
+
+	if err != nil {
+		log.Error(err, "Failed to encode gatekeeper oidcurl")
+		return nil, err
 	}
-	for k, v := range tempConfig {
-		config += fmt.Sprintf("%s: %s\n", k, v)
+
+	defaultConfigNode := &yamlv3.Node{}
+	err = yamlv3.Unmarshal([]byte(gatekeeperDefaultConfig), defaultConfigNode)
+
+	if err != nil {
+		log.Error(err, "Failed to unmarshal default config")
+		mergedConfigNode = extraConfNode
+	} else {
+
+		content := defaultConfigNode.Content[0]
+		content.Content = append(extraConfNode.Content, content.Content...)
+		mergedConfigNode = defaultConfigNode
+	}
+
+	mergedConfigBytes, err := yamlv3.Marshal(mergedConfigNode)
+
+	if err != nil {
+		log.Error(err, "Failed to marshal merged config")
+		return nil, err
 	}
 
 	configMap := &corev1.ConfigMap{
@@ -121,12 +151,12 @@ func (r *GogatekeeperReconciler) newGatekeeperConfigMap(gk *gatekeeperv1alpha1.G
 			Namespace: gk.Namespace,
 		},
 		Data: map[string]string{
-			"gatekeeper.yaml": config,
+			"gatekeeper.yaml": string(mergedConfigBytes),
 		},
 	}
 
 	ctrl.SetControllerReference(gk, configMap, r.Scheme)
-	return configMap
+	return configMap, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
