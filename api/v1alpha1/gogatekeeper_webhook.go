@@ -19,14 +19,17 @@ package v1alpha1
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"regexp"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
+
+var gkAnnotationPrefix = "gatekeeper.gogatekeeper"
+var gkAnnotation = regexp.MustCompile(`^gatekeeper.gogatekeeper/?(.*)$`)
 
 // +kubebuilder:webhook:path=/mutate-v1-pod,mutating=true,sideEffects=noneOnDryRun,admissionReviewVersions=v1,failurePolicy=fail,groups="",resources=pods,verbs=create;update,versions=v1,name=mpod.kb.io
 
@@ -53,16 +56,8 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	annotationPrefix := "gatekeeper.gogatekeeper"
-	requiredAnnotations := []string{
-		"client-id",
-		"client-secret",
-		"encryption-key",
-		"redirection-url",
-	}
-
 	podAnnotations := pod.GetAnnotations()
-	if _, ok := podAnnotations["gatekeeper.gogatekeeper"]; !ok {
+	if _, ok := podAnnotations[gkAnnotationPrefix]; !ok {
 		return admission.Allowed("No injection requested")
 	}
 
@@ -71,7 +66,7 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 	// Mount ConfigFile (CRD generated) as config for gatekeeper instance
 	configMapVolume := &corev1.ConfigMapVolumeSource{
 		LocalObjectReference: corev1.LocalObjectReference{
-			Name: podAnnotations["gatekeeper.gogatekeeper"],
+			Name: podAnnotations[gkAnnotationPrefix],
 		},
 	}
 	gatekeeperConfigVolume := corev1.Volume{
@@ -87,12 +82,31 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 		"/etc/gatekeeperConfig/gatekeeper.yaml",
 	}
 
-	// Let the user omit one for now...
-	var gkConfigAnnotation string
-	for _, annot := range requiredAnnotations {
-		gkConfigAnnotation = fmt.Sprintf("%s/%s", annotationPrefix, annot)
-		if val, ok := podAnnotations[gkConfigAnnotation]; ok {
-			gkContainerArgs = append(gkContainerArgs, "--"+annot, val)
+	envFromSource := []corev1.EnvFromSource{}
+
+	// Parse additional annotations:
+	// `gatekeeper.gogatekeeper/existingEnv: val`       -- load ConfigMap "val" as `envFrom` in container
+	// `gatekeeper.gogatekeeper/existingSecretEnv: val` -- load Secret "val" as `envFrom` in container
+	// `gatekeeper.gogatekeeper/my-cli-option: val`     -- set `--my-cli-option=val` as arg to container
+	for annot, val := range podAnnotations {
+		matches := gkAnnotation.FindStringSubmatch(annot)
+		if matches != nil && matches[1] != "" {
+			switch matches[1] {
+			case "existingEnv":
+				envFromSource = append(envFromSource, corev1.EnvFromSource{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{Name: val},
+					},
+				})
+			case "existingSecretEnv":
+				envFromSource = append(envFromSource, corev1.EnvFromSource{
+					SecretRef: &corev1.SecretEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{Name: val},
+					},
+				})
+			default:
+				gkContainerArgs = append(gkContainerArgs, "--"+matches[1], val)
+			}
 		}
 	}
 
@@ -105,6 +119,7 @@ func (a *gatekeeperInjector) Handle(ctx context.Context, req admission.Request) 
 				MountPath: "/etc/gatekeeperConfig/",
 			},
 		},
+		EnvFrom: envFromSource,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "gatekeeper",

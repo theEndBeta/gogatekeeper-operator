@@ -44,6 +44,27 @@ spec:
 The required annotations must be on the `Pod` template, not the top-level `Deployment`, as the webhook currently works
 at the `Pod` level.
 
+There are four annotation types supported by the operator:
+* `gatekeeper.gogatekeeper: val` (required)
+
+  Enable the gatekeeper container injection using the CRD named `val`
+
+* `gatekeeper.gogatekeeper/existingEnv: val` (optional)
+
+  Load environment variables from the ConfigMap `val`
+
+* `gatekeeper.gogatekeeper/existingSecretEnv: val` (optional)
+
+  Load environment variables from the Secret `val`
+
+* `gatekeeper.gogatekeeper/my-cli-arg: val` (optional)
+
+  Add `--my-cli-arg=val` as an argument to the container
+  
+
+See [testfiles/nginx-gatekeeper.yaml](./testfiles/nginx-gatekeeper.yaml) for a full example.
+
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -184,11 +205,11 @@ There are three example yaml files available in the `testfiles` directory.
 
 3) Edit and apply the nginx with gatekeeper deployment
 
-    You will first want to edit the `gogatekeeper.gatekeeper` annotations on `testfiles/nginx-gatekeeper.yaml` to
-    specify the following as defined by your OIDC provider:
-    * `client-id`
-    * `client-secret`
-    * `redirection-url`
+    You will first want to edit the [`Secret`, `ConfigMap`, or annotations](#annotations) in
+    `testfiles/nginx-gatekeeper.yaml` to specify the following as defined by your OIDC provider:
+    * `client-id` (env `PROXY_CLIENT_ID`)
+    * `client-secret` (env `PROXY_CLIENT_SECRET`)
+    * `redirection-url` (env `PROXY_REDIRECTION_URL`)
 
     Then run:
 
@@ -204,9 +225,9 @@ There are three example yaml files available in the `testfiles` directory.
 
 ## TODOs
 
-* Add ability to specify `client-id`/`client-secret` as a k8s `Secret`
-* Add ability to specify additional configuration fields in the gatekeeper CRD for defining the default gatekeeper
-  configuration.
+* ~~Add ability to specify `client-id`/`client-secret` as a k8s `Secret`~~
+* ~~Add ability to specify additional configuration fields in the gatekeeper CRD for defining the default gatekeeper
+  configuration.~~
 * Add update monitoring/handling to gatekeeper CRD admission webhook.
 * Add validation webhook to gatekeeper CRD.
 * Automated tests
